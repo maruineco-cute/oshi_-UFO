@@ -1,0 +1,2085 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101126">
+  <title>推しがUFOに攫われるジェネレーター</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f6f3ff;
+      --muted: #aaa8c7;
+      --pink: #ff82cc;
+      --cyan: #7cecff;
+      --panel: rgba(24, 24, 50, .76);
+      --line: rgba(207, 203, 255, .15);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { min-width: 320px; background: #0d0e20; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: Inter, "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+      background:
+        radial-gradient(ellipse at 50% -12%, rgba(112, 77, 175, .28), transparent 48%),
+        radial-gradient(ellipse at 7% 42%, rgba(55, 97, 150, .11), transparent 35%),
+        #0d0e20;
+      letter-spacing: .015em;
+    }
+
+    button, input { font: inherit; }
+    button:focus-visible, input:focus-visible, label:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 3px;
+    }
+    [hidden] { display: none !important; }
+
+    .page-wrap {
+      width: min(100% - 40px, 1000px);
+      margin: 0 auto;
+      padding: 25px 0 32px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      color: #d8d5ee;
+      font-size: 12px;
+      letter-spacing: .13em;
+      font-weight: 800;
+    }
+
+    .brand-icon {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border: 1px solid rgba(124, 236, 255, .3);
+      border-radius: 12px;
+      color: var(--cyan);
+      background: rgba(90, 178, 217, .09);
+      box-shadow: 0 0 24px rgba(92, 225, 255, .1);
+    }
+    .brand-icon svg { width: 22px; height: 22px; }
+    .brand-jp { color: #85839f; font-size: 11px; letter-spacing: .06em; font-weight: 600; }
+    .brand-spacer { flex: 1; }
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 11px;
+      border: 1px solid rgba(150, 240, 210, .18);
+      border-radius: 999px;
+      color: #a9f2d9;
+      background: rgba(49, 167, 129, .08);
+      font-size: 10px;
+      letter-spacing: .1em;
+    }
+    .status-chip::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #7cf0c0;
+      box-shadow: 0 0 10px #7cf0c0;
+    }
+
+    .hero { padding: 46px 0 25px; text-align: center; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 13px;
+      color: #aaa5cc;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .13em;
+    }
+    .eyebrow-mark {
+      color: var(--pink);
+      text-shadow: 0 0 13px rgba(255, 130, 204, .9);
+      font-size: 14px;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(27px, 4.2vw, 43px);
+      line-height: 1.32;
+      letter-spacing: -.045em;
+      font-weight: 850;
+    }
+    .gradient-text {
+      color: transparent;
+      background: linear-gradient(90deg, #ffb0df 8%, #ff7cc9 52%, #a8a3ff 100%);
+      background-clip: text;
+      -webkit-background-clip: text;
+    }
+    .hero-copy {
+      margin: 13px auto 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.9;
+    }
+    .hero-copy strong { color: #d4d0ec; font-weight: 700; }
+    .hero-copy.bottom-copy { max-width: 740px; margin: 18px auto 5px; font-size: 12px; }
+
+    .generator { width: 100%; }
+    .stage-wrap {
+      position: relative;
+      padding: 12px;
+      border: 1px solid rgba(207, 203, 255, .13);
+      border-radius: 30px;
+      background: linear-gradient(140deg, rgba(46, 43, 81, .67), rgba(21, 22, 47, .74));
+      box-shadow: 0 28px 80px rgba(0, 0, 0, .28), inset 0 1px rgba(255, 255, 255, .035);
+    }
+    .stage {
+      position: relative;
+      isolation: isolate;
+      perspective: 950px;
+      height: clamp(390px, 53vw, 520px);
+      overflow: hidden;
+      border: 1px solid rgba(197, 206, 255, .12);
+      border-radius: 21px;
+      background:
+        radial-gradient(ellipse at 50% 105%, rgba(89, 67, 155, .5), transparent 49%),
+        radial-gradient(ellipse at 79% 19%, rgba(72, 104, 178, .19), transparent 29%),
+        linear-gradient(150deg, #101a35 0%, #12142e 53%, #211a3d 100%);
+      transition: border-color .25s, box-shadow .25s;
+    }
+    .stage::before {
+      content: "";
+      position: absolute;
+      z-index: 0;
+      inset: 0;
+      pointer-events: none;
+      opacity: .82;
+      background-image:
+        radial-gradient(1.5px 1.5px at 8% 20%, rgba(255,255,255,.9) 98%, transparent),
+        radial-gradient(1px 1px at 17% 65%, rgba(204,226,255,.95) 98%, transparent),
+        radial-gradient(2px 2px at 31% 14%, rgba(255,255,255,.9) 98%, transparent),
+        radial-gradient(1px 1px at 43% 31%, rgba(255,255,255,.8) 98%, transparent),
+        radial-gradient(1.5px 1.5px at 57% 11%, rgba(205,225,255,.9) 98%, transparent),
+        radial-gradient(1px 1px at 68% 43%, rgba(255,255,255,.85) 98%, transparent),
+        radial-gradient(1.5px 1.5px at 87% 29%, rgba(255,255,255,.9) 98%, transparent),
+        radial-gradient(1px 1px at 93% 70%, rgba(205,225,255,.9) 98%, transparent),
+        radial-gradient(1px 1px at 25% 87%, rgba(255,255,255,.75) 98%, transparent),
+        radial-gradient(1px 1px at 76% 83%, rgba(255,255,255,.75) 98%, transparent);
+    }
+    .stage::after {
+      content: "";
+      position: absolute;
+      z-index: 1;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 23%;
+      pointer-events: none;
+      background: linear-gradient(0deg, rgba(11, 13, 31, .5), transparent);
+    }
+    .stage.drag-over {
+      border-color: rgba(124, 236, 255, .7);
+      box-shadow: inset 0 0 0 2px rgba(124, 236, 255, .15), 0 0 35px rgba(124, 236, 255, .13);
+    }
+    .stage.has-captured {
+      background:
+        radial-gradient(ellipse at 50% 105%, rgba(62, 50, 120, .29), transparent 49%),
+        linear-gradient(150deg, #10182d 0%, #11132a 53%, #17152f 100%);
+    }
+
+    .planet {
+      position: absolute;
+      z-index: 0;
+      top: 13%;
+      right: 12%;
+      width: 45px;
+      height: 45px;
+      border: 1px solid rgba(197, 184, 255, .2);
+      border-radius: 50%;
+      background: radial-gradient(circle at 34% 31%, #a8a2d1 0 2%, #7770a7 3% 9%, #413d70 42%, #26264e 72%);
+      box-shadow: 0 0 30px rgba(133, 123, 211, .18);
+      opacity: .55;
+      pointer-events: none;
+    }
+    .planet::after {
+      content: "";
+      position: absolute;
+      left: -8px;
+      top: 17px;
+      width: 59px;
+      height: 12px;
+      border: 1px solid rgba(180, 183, 239, .22);
+      border-radius: 50%;
+      transform: rotate(-18deg);
+    }
+    .ground-glow {
+      position: absolute;
+      z-index: 2;
+      bottom: -18px;
+      left: 50%;
+      width: min(54%, 410px);
+      height: 94px;
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(255, 161, 224, .3), rgba(141, 130, 255, .12) 37%, transparent 72%);
+      filter: blur(8px);
+      pointer-events: none;
+      transition: opacity .4s;
+    }
+    .stage.has-captured .ground-glow { opacity: .18; }
+    .stage.illuminated .ground-glow {
+      opacity: .94;
+      background: radial-gradient(ellipse, var(--beam-bottom, rgba(255, 190, 238, .3)), var(--beam-mid, rgba(129, 226, 255, .14)) 38%, transparent 73%);
+      filter: blur(12px);
+    }
+    .target-glow {
+      position: absolute;
+      z-index: 4;
+      left: 50%;
+      bottom: 8%;
+      width: min(44%, 330px);
+      height: 260px;
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background: radial-gradient(ellipse at 50% 65%, var(--beam-bottom, rgba(194, 249, 255, .34)), var(--beam-mid, rgba(148, 218, 255, .14)) 40%, transparent 72%);
+      filter: blur(15px);
+      opacity: 0;
+      transition: opacity .4s ease;
+      pointer-events: none;
+    }
+    .stage.illuminated .target-glow { opacity: .9; }
+
+    .beam {
+      position: absolute;
+      z-index: 3;
+      top: 23%;
+      right: 0;
+      bottom: 4%;
+      left: 0;
+      width: 100%;
+      height: auto;
+      opacity: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, transparent 22%, rgba(255,255,255,.035) 43%, rgba(255,255,255,.18) 50%, rgba(255,255,255,.035) 57%, transparent 78%),
+        linear-gradient(180deg, var(--beam-top, rgba(197, 252, 255, .52)) 0%, var(--beam-mid, rgba(129, 226, 255, .19)) 34%, var(--beam-bottom, rgba(255, 190, 238, .22)) 100%);
+      filter: drop-shadow(0 0 18px rgba(160, 236, 255, .27));
+      clip-path: polygon(47% 0, 53% 0, 84% 100%, 16% 100%);
+      transition: opacity .55s ease;
+      mix-blend-mode: screen;
+    }
+    .beam::before {
+      content: "";
+      position: absolute;
+      inset: -4% 16% -2%;
+      background: linear-gradient(180deg, rgba(255,255,255,.72), rgba(223,252,255,.22) 32%, transparent 100%);
+      filter: blur(14px);
+      opacity: .7;
+      mix-blend-mode: screen;
+    }
+    .beam::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 49.4%;
+      width: 1.2%;
+      background: linear-gradient(180deg, rgba(255,255,255,.8), rgba(255,255,255,.24) 40%, transparent 96%);
+      filter: blur(2px);
+      opacity: .58;
+      animation: beam-ray 1.6s ease-in-out infinite alternate;
+    }
+    .beam.on {
+      opacity: .92;
+      animation: beam-pulse 1.5s ease-in-out infinite alternate;
+    }
+    .beam.on.strained { animation: beam-stutter .14s steps(2, end) infinite; }
+    .beam.on.glitching { animation: beam-stutter .12s steps(2, end) infinite; filter: hue-rotate(38deg) saturate(1.7); }
+    .beam.cylinder { clip-path: polygon(36% 0, 64% 0, 64% 100%, 36% 100%); }
+    .beam.cylinder::before { inset: 0 34%; filter: blur(20px); opacity: .82; }
+    .beam.cylinder::after { left: 49.2%; width: 1.6%; opacity: .78; }
+    .beam.rings { clip-path: polygon(47% 0, 53% 0, 53% 100%, 47% 100%); opacity: .35; }
+    .beam.on.rings { opacity: .52; }
+
+    .ufo {
+      position: absolute;
+      z-index: 7;
+      top: 4.7%;
+      left: 50%;
+      width: clamp(118px, 17vw, 158px);
+      height: auto;
+      opacity: 0;
+      transform: translateX(-50%);
+      filter: drop-shadow(0 9px 19px rgba(90, 227, 255, .24));
+      pointer-events: none;
+    }
+    .ufo svg { display: block; width: 100%; height: auto; overflow: visible; }
+    .ufo::after {
+      content: "";
+      position: absolute;
+      z-index: 1;
+      left: 50%;
+      bottom: -14px;
+      width: 34%;
+      height: 38px;
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(237, 255, 255, .82), rgba(118, 229, 255, .32) 40%, transparent 74%);
+      filter: blur(5px);
+      opacity: .68;
+      pointer-events: none;
+    }
+    .ufo.entering.from-top { animation: ufo-in-top .9s cubic-bezier(.18,.75,.23,1) both; }
+    .ufo.hovering { opacity: 1; animation: saucer-hover 1.8s ease-in-out infinite alternate; }
+    .ufo.straining, .ufo.rejecting { opacity: 1; animation: ufo-strain .12s steps(2, end) infinite; }
+    .ufo.straining { filter: drop-shadow(0 0 25px rgba(255, 200, 116, .6)); }
+    .ufo.leaving.from-top { animation: ufo-away-top 1.25s cubic-bezier(.3,.02,.8,.35) both; }
+    .ufo.malfunction { animation: ufo-malfunction 3.05s cubic-bezier(.42,.02,.82,.44) both; }
+
+    .flyby-ufo {
+      position: absolute;
+      z-index: 8;
+      top: 23%;
+      left: 120%;
+      width: clamp(110px, 13vw, 138px);
+      opacity: 0;
+      transform: translateX(-50%);
+      filter: drop-shadow(0 5px 15px rgba(121, 231, 255, .36));
+      pointer-events: none;
+    }
+    .flyby-ufo svg { display: block; width: 100%; height: auto; overflow: visible; }
+    .flyby-ufo.passing { animation: flyby-pass 1.7s cubic-bezier(.28,.12,.66,.9) both; }
+
+    .capture-tool {
+      position: absolute;
+      z-index: 9;
+      top: 0;
+      left: 50%;
+      width: clamp(145px, 23vw, 220px);
+      height: 220px;
+      opacity: 0;
+      transform: translateX(-50%) scaleY(0);
+      transform-origin: top center;
+      filter: drop-shadow(0 0 10px rgba(160, 239, 255, .36));
+      transition: transform .72s cubic-bezier(.2,.7,.3,1), opacity .12s linear;
+      pointer-events: none;
+    }
+    .capture-tool svg { display: block; width: 100%; height: 100%; overflow: visible; }
+    .capture-tool.deployed { opacity: 1; transform: translateX(-50%) scaleY(1); }
+    .capture-tool.retracting { opacity: 0; transform: translateX(-50%) scaleY(0); transition-duration: .9s; }
+    .capture-tool .tool-shape { opacity: 0; transition: opacity .2s ease; }
+    .capture-tool.claw .claw-open, .capture-tool.tongs .tongs-open { opacity: 1; }
+    .capture-tool.closed .claw-open, .capture-tool.closed .tongs-open { opacity: 0; }
+    .capture-tool.closed .claw-closed, .capture-tool.closed .tongs-closed { opacity: 1; }
+    .tool-cable { fill: none; stroke: url(#toolMetal); stroke-width: 8; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+    .tool-cable-highlight { fill: none; stroke: rgba(255,255,255,.9); stroke-width: 2; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+    .tool-joint { fill: #ecffff; stroke: #76dff7; stroke-width: 4; vector-effect: non-scaling-stroke; }
+    .tool-grip { fill: none; stroke: url(#toolMetal); stroke-width: 13; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+    .tool-grip-highlight { fill: none; stroke: rgba(255,255,255,.85); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+
+    .light-rings {
+      position: absolute;
+      z-index: 6;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .light-ring {
+      position: absolute;
+      left: 50%;
+      top: var(--ring-top, 68%);
+      width: var(--ring-width, 180px);
+      height: var(--ring-height, 32px);
+      transform: translate(-50%, -50%) scale(.34) rotateX(58deg);
+      border: 2px solid var(--ring-color, #b9f4ff);
+      border-radius: 50%;
+      box-shadow: 0 0 12px var(--ring-color, #b9f4ff), inset 0 0 8px var(--ring-color, #b9f4ff);
+      opacity: 0;
+      animation: ring-wave 1.4s ease-out var(--ring-delay, 0s) infinite;
+      pointer-events: none;
+    }
+    .fx-layer {
+      position: absolute;
+      z-index: 6;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .particle {
+      position: absolute;
+      color: var(--particle-color, #c8f8ff);
+      opacity: 0;
+      font-size: clamp(16px, 2.3vw, 24px);
+      line-height: 1;
+      text-shadow: 0 0 13px currentColor;
+      animation: particle-rise var(--particle-duration, 1.7s) ease-out both;
+      pointer-events: none;
+    }
+    .star-layer {
+      position: absolute;
+      z-index: 6;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .falling-star {
+      position: absolute;
+      top: -34px;
+      color: var(--star-color, #ffe36e);
+      opacity: 0;
+      font-family: system-ui, sans-serif;
+      font-size: var(--star-size, 20px);
+      font-weight: 900;
+      line-height: 1;
+      text-shadow: 0 0 6px currentColor, 0 0 15px currentColor;
+      filter: drop-shadow(0 0 7px currentColor);
+      animation: star-fall var(--star-duration, 4s) linear var(--star-delay, 0s) forwards;
+      pointer-events: none;
+    }
+    .character {
+      position: absolute;
+      z-index: 5;
+      left: 50%;
+      bottom: 6%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: clamp(150px, 23vw, 220px);
+      height: clamp(205px, 36vw, 275px);
+      opacity: 1;
+      transform: translateX(-50%);
+      transform-origin: 50% 50%;
+      transform-style: preserve-3d;
+    }
+    .anger-mark {
+      position: absolute;
+      z-index: 2;
+      top: 2%;
+      right: -13%;
+      opacity: 0;
+      transform-origin: 50% 70%;
+      font-family: "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+      font-size: clamp(23px, 3.6vw, 36px);
+      line-height: 1;
+      filter: drop-shadow(0 0 8px rgba(255, 113, 102, .62));
+      pointer-events: none;
+    }
+    .character.angry .anger-mark { animation: anger-pop 1.25s cubic-bezier(.16,.82,.25,1) both; }
+    /* 画像にはカード枠や画像まわりの影を付けず、そのまま見せる */
+    .portrait-frame {
+      position: relative;
+      display: grid;
+      place-items: center;
+      flex: 1;
+      width: 100%;
+      min-height: 0;
+      overflow: visible;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+    .portrait-frame::after { content: none; }
+    #portrait {
+      display: block;
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      object-fit: contain;
+      position: relative;
+      z-index: 1;
+    }
+    .placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      width: 100%;
+      height: 100%;
+      padding: 10px;
+      color: #514b7a;
+      text-align: center;
+    }
+    .placeholder-orbit {
+      display: grid;
+      place-items: center;
+      position: relative;
+      width: 76px;
+      height: 76px;
+      margin-bottom: 5px;
+      border: 1px solid rgba(119, 107, 175, .27);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,.93), rgba(225,220,255,.57));
+      box-shadow: 0 0 28px rgba(132, 124, 190, .2);
+    }
+    .placeholder-orbit::before {
+      content: "";
+      position: absolute;
+      width: 91px;
+      height: 31px;
+      border: 1px solid rgba(138, 126, 187, .36);
+      border-radius: 50%;
+      transform: rotate(-26deg);
+    }
+    .placeholder-orbit span { color: #8e79ca; font-size: 29px; text-shadow: 0 0 16px rgba(172, 127, 255, .55); }
+    .placeholder strong { font-size: 13px; letter-spacing: .04em; }
+    .placeholder small { color: #777193; font-size: 10px; }
+    .character.floating { animation: floaty 1.15s ease-in-out infinite alternate; }
+    .character.abducting { animation: abduct 1.45s cubic-bezier(.52,.03,.88,.41) forwards; }
+    .character.too-heavy { animation: heavy-wobble 1.4s cubic-bezier(.26,.7,.24,1) both; }
+    .character.almost-abducting { animation: almost-abduct 1s cubic-bezier(.45,.04,.8,.45) forwards; }
+    .character.discarded { animation: discarded 1.35s cubic-bezier(.2,.72,.35,1) both; }
+    .character.gripped { animation: gripped .4s ease-in-out both; }
+    .character.page-flip { animation: page-flip 1.15s cubic-bezier(.45,.05,.55,.95) both; }
+    .character.watching-object { animation: photo-step-aside .48s cubic-bezier(.2,.78,.27,1) both; }
+    .character.photo-returning { animation: photo-return-center .55s cubic-bezier(.18,.82,.28,1) both; }
+    .character.bumpy-landing { animation: bumpy-landing .72s cubic-bezier(.2,.75,.28,1) both; }
+    .character.returning { animation: return-pop .65s cubic-bezier(.18,.82,.32,1.2) both; }
+    .decoy-object {
+      position: absolute;
+      z-index: 8;
+      left: 50%;
+      top: 50%;
+      display: grid;
+      place-items: center;
+      width: clamp(68px, 10vw, 92px);
+      height: clamp(68px, 10vw, 92px);
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(.12);
+      transform-origin: center;
+      font-family: "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+      font-size: clamp(52px, 8vw, 76px);
+      line-height: 1;
+      filter: drop-shadow(0 0 18px rgba(255, 238, 178, .68));
+      pointer-events: none;
+    }
+    .decoy-object[hidden] { display: none; }
+    .decoy-object .single-sock-icon { width: 76%; height: 76%; overflow: visible; }
+    .decoy-object.appearing { animation: decoy-pop .5s cubic-bezier(.18,.85,.28,1.15) both; }
+    .decoy-object.taken { animation: decoy-taken 1.45s cubic-bezier(.5,.04,.88,.4) forwards; }
+    .alien {
+      position: absolute;
+      z-index: 8;
+      left: 50%;
+      bottom: 8%;
+      width: clamp(62px, 8.5vw, 82px);
+      height: clamp(105px, 16vw, 136px);
+      opacity: 0;
+      transform: translate(-50%, var(--alien-drop-start, -270px)) scale(.72);
+      transform-origin: center bottom;
+      filter: drop-shadow(0 0 12px rgba(190, 234, 222, .42));
+      pointer-events: none;
+    }
+    .alien[hidden] { display: none; }
+    .alien svg { display: block; width: 100%; height: 100%; overflow: visible; }
+    .alien-descending { animation: alien-descend 1.15s cubic-bezier(.2,.8,.25,1) both; }
+    .alien-walking { animation: alien-walk-off 2.4s ease-in-out both; }
+    .alien-walking .alien-leg-left { animation: alien-step .28s ease-in-out infinite alternate; }
+    .alien-walking .alien-leg-right { animation: alien-step .28s ease-in-out infinite alternate-reverse; }
+    .alien-walking .alien-arm-left { animation: alien-arm-step .28s ease-in-out infinite alternate-reverse; }
+    .alien-walking .alien-arm-right { animation: alien-arm-step .28s ease-in-out infinite alternate; }
+    .alien-limb { transform-box: fill-box; transform-origin: top center; }
+
+    .control-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 17px 3px 12px;
+    }
+    .upload-group, .action-group { display: flex; align-items: center; gap: 12px; }
+    .upload-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 46px;
+      padding: 0 16px;
+      border: 1px solid rgba(207, 203, 255, .2);
+      border-radius: 14px;
+      color: #eceaff;
+      background: rgba(31, 31, 61, .83);
+      box-shadow: inset 0 1px rgba(255,255,255,.035);
+      font-size: 12px;
+      font-weight: 750;
+      cursor: pointer;
+      transition: border-color .2s, background .2s, transform .2s;
+    }
+    .upload-button:hover { border-color: rgba(124, 236, 255, .45); background: rgba(39, 42, 76, .95); transform: translateY(-1px); }
+    .upload-button svg { width: 16px; height: 16px; color: var(--cyan); }
+    .sound-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 46px;
+      padding: 0 11px;
+      border: 1px solid rgba(207, 203, 255, .2);
+      border-radius: 14px;
+      color: #d9d6ee;
+      background: rgba(31, 31, 61, .83);
+      font: inherit;
+      font-size: 11px;
+      font-weight: 750;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: border-color .2s, background .2s, transform .2s;
+    }
+    .sound-toggle:hover { border-color: rgba(124, 236, 255, .45); background: rgba(39, 42, 76, .95); transform: translateY(-1px); }
+    .sound-toggle svg { width: 18px; height: 18px; }
+    .sound-toggle .mute-mark { display: none; }
+    .sound-toggle.muted { color: #928eaa; }
+    .sound-toggle.muted .sound-wave { display: none; }
+    .sound-toggle.muted .mute-mark { display: block; }
+    .launch-button, .return-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 48px;
+      padding: 0 20px;
+      border: 0;
+      border-radius: 15px;
+      color: #1a1432;
+      background: linear-gradient(105deg, #ff9bd7 0%, #d7a7ff 53%, #96eaff 100%);
+      box-shadow: 0 8px 26px rgba(189, 121, 223, .2), inset 0 1px rgba(255,255,255,.7);
+      font-size: 13px;
+      font-weight: 850;
+      cursor: pointer;
+      transition: transform .2s, filter .2s, box-shadow .2s;
+      white-space: nowrap;
+    }
+    .launch-button:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.06); box-shadow: 0 11px 30px rgba(189, 121, 223, .3), inset 0 1px rgba(255,255,255,.7); }
+    .launch-button:active:not(:disabled) { transform: translateY(0); }
+    .launch-button:disabled { cursor: wait; filter: saturate(.72); opacity: .78; }
+    .launch-button .sparkle { font-size: 18px; line-height: 1; }
+    .launch-button svg { width: 15px; height: 15px; }
+    .return-button {
+      min-height: 44px;
+      padding: 0 14px;
+      border: 1px solid rgba(207, 203, 255, .2);
+      color: #e8e5ff;
+      background: rgba(38, 35, 72, .9);
+      box-shadow: none;
+      font-size: 11px;
+    }
+    .return-button:hover { border-color: rgba(255, 130, 204, .48); background: rgba(55, 44, 88, .98); }
+
+    .message-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      min-height: 52px;
+      padding: 10px 14px;
+      border: 1px solid rgba(207, 203, 255, .1);
+      border-radius: 15px;
+      background: rgba(24, 24, 50, .53);
+    }
+    .status-box { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .status-icon {
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      width: 25px;
+      height: 25px;
+      border-radius: 9px;
+      color: #ffd2f0;
+      background: rgba(255, 130, 204, .12);
+      font-size: 13px;
+    }
+    .status-text { margin: 0; color: #cbc8df; font-size: 11px; line-height: 1.6; }
+    .probability {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex: 0 0 auto;
+      color: #aaa6c5;
+      font-size: 10px;
+    }
+    .probability strong {
+      padding: 5px 8px;
+      border: 1px solid rgba(255, 130, 204, .23);
+      border-radius: 8px;
+      color: #ffabd9;
+      background: rgba(255, 130, 204, .08);
+      font-size: 10px;
+    }
+    .records { display: flex; align-items: center; gap: 12px; flex: 0 0 auto; }
+    .record-divider { width: 1px; height: 24px; background: rgba(207, 203, 255, .13); }
+    .record { display: flex; align-items: center; gap: 6px; color: #9692af; font-size: 10px; white-space: nowrap; }
+    .record strong { color: #ece9ff; font-size: 12px; font-variant-numeric: tabular-nums; }
+    .privacy-note {
+      margin: 11px 4px 0;
+      color: #77758f;
+      font-size: 10px;
+      text-align: center;
+    }
+    .collection-panel {
+      margin-top: 16px;
+      padding: 17px 20px 16px;
+      border: 1px solid rgba(207, 203, 255, .13);
+      border-radius: 20px;
+      background: linear-gradient(140deg, rgba(35, 33, 66, .67), rgba(20, 21, 45, .76));
+      box-shadow: inset 0 1px rgba(255,255,255,.025);
+    }
+    .collection-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+    .collection-title { margin: 0; color: #e8e5ff; font-size: 14px; font-weight: 800; }
+    .collection-kicker { margin: 0 0 4px; color: #8e8aa9; font-size: 8px; font-weight: 800; letter-spacing: .18em; }
+    .collection-count {
+      flex: 0 0 auto;
+      padding: 7px 10px;
+      border: 1px solid rgba(124, 236, 255, .2);
+      border-radius: 10px;
+      color: #a9edff;
+      background: rgba(124, 236, 255, .07);
+      font-size: 10px;
+      font-weight: 750;
+    }
+    .collection-items { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .collection-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 39px;
+      padding: 6px 10px;
+      border: 1px solid rgba(207, 203, 255, .13);
+      border-radius: 12px;
+      color: #d8d5ea;
+      background: rgba(255, 255, 255, .035);
+      animation: collection-reveal .36s cubic-bezier(.2,.8,.3,1) both;
+    }
+    .collection-emoji { font-family: "Apple Color Emoji", "Segoe UI Emoji", sans-serif; font-size: 20px; line-height: 1; }
+    .collection-emoji .single-sock-icon { display: block; width: 25px; height: 25px; }
+    .collection-name { font-size: 10px; font-weight: 650; }
+    .collection-empty { margin: 13px 0 0; color: #8b87a7; font-size: 10px; }
+    .collection-empty[hidden] { display: none; }
+    footer {
+      padding-top: 25px;
+      color: #625f7b;
+      font-size: 9px;
+      letter-spacing: .1em;
+      text-align: center;
+    }
+
+    @keyframes beam-pulse { from { filter: brightness(.88) drop-shadow(0 0 10px rgba(142,230,255,.2)); } to { filter: brightness(1.14) drop-shadow(0 0 19px rgba(142,230,255,.43)); } }
+    @keyframes ufo-in-top {
+      from { opacity: 0; transform: translate(-50%, -125px) scale(.55); }
+      72% { opacity: 1; transform: translate(-50%, 7px) scale(1.04); }
+      to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    }
+    @keyframes saucer-hover {
+      from { transform: translate(-50%, -2px) rotate(-1deg); }
+      to { transform: translate(-50%, 6px) rotate(1deg); }
+    }
+    @keyframes ufo-away-top {
+      from { opacity: 1; transform: translate(-50%, 0) scale(1); }
+      to { opacity: 0; transform: translate(-50%, -205px) scale(.2) rotate(-5deg); }
+    }
+    @keyframes flyby-pass {
+      0% { left: 122%; opacity: 0; transform: translate(-50%, 10px) scale(.78); }
+      18% { left: 50%; opacity: 1; transform: translate(-50%, 0) scale(1); }
+      39% { left: 50%; opacity: 1; transform: translate(-50%, -2px) scale(1.16); }
+      100% { left: -22%; opacity: 0; transform: translate(-50%, -8px) scale(.72); }
+    }
+    @keyframes beam-ray { from { opacity: .28; } to { opacity: .78; } }
+    @keyframes beam-stutter { 0%, 100% { opacity: .48; } 50% { opacity: 1; } }
+    @keyframes ring-wave {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(.34) rotateX(58deg); }
+      18% { opacity: .92; }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1.48) rotateX(58deg); }
+    }
+    @keyframes anger-pop {
+      0% { opacity: 0; transform: translate(0, 10px) scale(.1) rotate(-28deg); }
+      18% { opacity: 1; transform: translate(0, 0) scale(1.25) rotate(8deg); }
+      33% { opacity: 1; transform: translate(0, 0) scale(.94) rotate(-6deg); }
+      70% { opacity: .96; transform: translate(7px, -8px) scale(1) rotate(9deg); }
+      100% { opacity: 0; transform: translate(18px, -22px) scale(.76) rotate(19deg); }
+    }
+    @keyframes ufo-strain {
+      0%, 100% { transform: translate(-50%, 0) rotate(-1.5deg); }
+      25% { transform: translate(calc(-50% - 2px), 1px) rotate(1.5deg); }
+      50% { transform: translate(calc(-50% + 2px), -1px) rotate(-1deg); }
+      75% { transform: translate(-50%, 1px) rotate(1.4deg); }
+    }
+    @keyframes ufo-malfunction {
+      0% { opacity: 1; transform: translateX(-50%) translate(0, 0) rotate(0) scale(1); }
+      10% { transform: translateX(-50%) translate(-17px, 11px) rotate(-12deg) scale(1.02); }
+      21% { transform: translateX(-50%) translate(21px, -9px) rotate(10deg) scale(.98); }
+      33% { transform: translateX(-50%) translate(-38px, 21px) rotate(-16deg) scale(1.03); }
+      45% { transform: translateX(-50%) translate(35px, -18px) rotate(13deg) scale(.97); }
+      58% { transform: translateX(-50%) translate(-54px, 24px) rotate(-18deg) scale(1.02); }
+      70% { transform: translateX(-50%) translate(49px, -18px) rotate(14deg) scale(.96); }
+      82% { transform: translateX(-50%) translate(-25px, 9px) rotate(-8deg) scale(1); }
+      100% { opacity: 0; transform: translateX(-50%) translate(var(--malfunction-x, 120vw), -62px) rotate(39deg) scale(.55); }
+    }
+    @keyframes particle-rise {
+      0% { opacity: 0; transform: translate(0, 14px) scale(.45) rotate(-12deg); }
+      18% { opacity: 1; }
+      100% { opacity: 0; transform: translate(var(--drift, 0), -108px) scale(1.22) rotate(38deg); }
+    }
+    @keyframes star-fall {
+      0% { opacity: 0; transform: translate3d(0, 0, 0) rotate(0deg) scale(.72); }
+      14% { opacity: .96; }
+      75% { opacity: .82; }
+      100% { opacity: 0; transform: translate3d(var(--star-drift, 28px), var(--star-fall, 560px), 0) rotate(var(--star-spin, 380deg)) scale(1); }
+    }
+    @keyframes floaty {
+      from { transform: translate(-50%, 0) rotate(-1.5deg); }
+      to { transform: translate(-50%, -51px) rotate(1.5deg); }
+    }
+    @keyframes page-flip {
+      0% { transform: translate(-50%, -8px) rotateY(0deg); }
+      25% { transform: translate(-50%, -27px) rotateY(90deg); }
+      50% { transform: translate(-50%, -45px) rotateY(180deg); }
+      75% { transform: translate(-50%, -26px) rotateY(270deg); }
+      100% { transform: translate(-50%, -8px) rotateY(360deg); }
+    }
+    @keyframes abduct {
+      0% { opacity: 1; transform: translate(-50%, -38px) scale(1); }
+      28% { opacity: 1; transform: translate(-50%, var(--abduct-dy-mid)) scale(.84); }
+      78% { opacity: 1; transform: translate(-50%, var(--abduct-dy-near)) scale(.56); }
+      100% { opacity: 0; transform: translate(-50%, var(--abduct-dy)) scale(.025); }
+    }
+    @keyframes gripped {
+      0% { transform: translate(-50%, -34px) rotate(0) scale(1); }
+      30% { transform: translate(calc(-50% - 3px), -38px) rotate(-2deg) scale(.95); }
+      65% { transform: translate(calc(-50% + 3px), -34px) rotate(2deg) scale(.96); }
+      100% { transform: translate(-50%, -38px) rotate(0) scale(.94); }
+    }
+    @keyframes heavy-wobble {
+      0% { transform: translate(-50%, -34px) rotate(0); }
+      14% { transform: translate(calc(-50% - 4px), -40px) rotate(-2deg); }
+      28% { transform: translate(calc(-50% + 4px), -34px) rotate(2deg); }
+      42% { transform: translate(-50%, -46px) rotate(-1deg); }
+      62% { transform: translate(-50%, 8px) rotate(2deg); }
+      78% { transform: translate(-50%, -4px) rotate(-1deg); }
+      100% { transform: translate(-50%, 0) rotate(0); }
+    }
+    @keyframes almost-abduct {
+      from { opacity: 1; transform: translate(-50%, -38px) scale(1); }
+      to { opacity: 1; transform: translate(-50%, -245px) scale(.82); }
+    }
+    @keyframes discarded {
+      0% { opacity: 1; transform: translate(-50%, -245px) scale(.82); }
+      34% { transform: translate(-50%, -180px) rotate(-3deg) scale(.86); }
+      59% { transform: translate(-50%, 15px) rotate(8deg) scale(.92); }
+      76% { transform: translate(-50%, -20px) rotate(-4deg) scale(1.02); }
+      90% { transform: translate(-50%, 5px) rotate(2deg) scale(.99); }
+      100% { opacity: 1; transform: translate(-50%, 0) rotate(0) scale(1); }
+    }
+    @keyframes photo-step-aside {
+      from { opacity: 1; transform: translate(-50%, -30px) scale(1); }
+      to { opacity: .8; transform: translate(calc(-50% - 82px), -16px) scale(.68); }
+    }
+    @keyframes photo-return-center {
+      from { opacity: .8; transform: translate(calc(-50% - 82px), -16px) scale(.68); }
+      to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    }
+    @keyframes bumpy-landing {
+      0% { transform: translate(-50%, -26px) rotate(-4deg); }
+      35% { transform: translate(calc(-50% - 7px), 9px) rotate(5deg); }
+      62% { transform: translate(calc(-50% + 5px), -5px) rotate(-3deg); }
+      100% { transform: translate(-50%, 0) rotate(0); }
+    }
+    @keyframes alien-descend {
+      0% { opacity: 0; transform: translate(-50%, var(--alien-drop-start, -270px)) scale(.72); }
+      18% { opacity: 1; }
+      100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    }
+    @keyframes alien-walk-off {
+      0% { opacity: 1; transform: translate(-50%, 0) rotate(0) scale(1); }
+      10% { transform: translate(calc(-50% + 9px), -5px) rotate(3deg) scale(1); }
+      20% { transform: translate(calc(-50% + 21px), 0) rotate(-3deg) scale(.99); }
+      30% { transform: translate(calc(-50% + 37px), -5px) rotate(4deg) scale(1); }
+      40% { transform: translate(calc(-50% + 58px), 1px) rotate(-3deg) scale(.99); }
+      52% { transform: translate(calc(-50% + 83px), -5px) rotate(4deg) scale(1); }
+      64% { transform: translate(calc(-50% + 115px), 0) rotate(-4deg) scale(.97); }
+      76% { transform: translate(calc(-50% + 154px), -3px) rotate(5deg) scale(.94); }
+      88% { opacity: 1; transform: translate(calc(-50% + 205px), 1px) rotate(-5deg) scale(.87); }
+      100% { opacity: 0; transform: translate(calc(-50% + 110vw), 8px) rotate(9deg) scale(.72); }
+    }
+    @keyframes alien-step {
+      from { transform: rotate(-19deg); }
+      to { transform: rotate(19deg); }
+    }
+    @keyframes alien-arm-step {
+      from { transform: rotate(13deg); }
+      to { transform: rotate(-17deg); }
+    }
+    @keyframes decoy-pop {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(.12) rotate(-24deg); }
+      72% { opacity: 1; transform: translate(-50%, -50%) scale(1.2) rotate(8deg); }
+      100% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0); }
+    }
+    @keyframes decoy-taken {
+      0% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0); }
+      28% { opacity: 1; transform: translate(calc(-50% + var(--decoy-dx-mid)), calc(-50% + var(--decoy-dy-mid))) scale(.84) rotate(-8deg); }
+      78% { opacity: 1; transform: translate(calc(-50% + var(--decoy-dx-near)), calc(-50% + var(--decoy-dy-near))) scale(.56) rotate(8deg); }
+      100% { opacity: 0; transform: translate(calc(-50% + var(--decoy-dx)), calc(-50% + var(--decoy-dy))) scale(.03) rotate(22deg); }
+    }
+    @keyframes return-pop {
+      0% { opacity: 0; transform: translate(-50%, -65px) scale(.65); }
+      75% { opacity: 1; transform: translate(-50%, 5px) scale(1.04); }
+      100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    }
+    @keyframes collection-reveal {
+      from { opacity: 0; transform: translateY(6px) scale(.94); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @media (max-width: 680px) {
+      .page-wrap { width: min(100% - 28px, 1000px); padding-top: 17px; }
+      .hero { padding: 36px 0 21px; }
+      .hero-copy { max-width: 460px; font-size: 12px; }
+      .stage-wrap { padding: 8px; border-radius: 24px; }
+      .stage { height: clamp(390px, 112vw, 500px); border-radius: 17px; }
+      .planet { right: 8%; width: 36px; height: 36px; }
+      .planet::after { top: 13px; width: 49px; height: 10px; }
+      .character { width: clamp(145px, 41vw, 195px); height: clamp(205px, 59vw, 258px); bottom: 7%; }
+      .ufo { width: clamp(112px, 32vw, 145px); top: 6%; }
+      .flyby-ufo { width: min(38vw, 128px); top: 23%; }
+      .capture-tool { width: min(66vw, 205px); }
+      .control-bar { flex-direction: column; align-items: stretch; gap: 13px; padding-top: 14px; }
+      .upload-group { width: 100%; justify-content: space-between; }
+      .action-group { justify-content: stretch; gap: 8px; }
+      .sound-toggle { min-height: 48px; }
+      .launch-button { flex: 1; }
+      .return-button { flex: 0 0 auto; }
+      .message-row { align-items: flex-start; }
+    }
+    @media (max-width: 420px) {
+      .page-wrap { width: min(100% - 22px, 1000px); }
+      .brand-jp { display: none; }
+      .status-chip { padding: 6px 9px; font-size: 9px; }
+      .hero { padding-top: 31px; }
+      h1 { font-size: 27px; }
+      .hero-copy { max-width: 330px; }
+      .stage { height: 390px; }
+      .message-row { align-items: stretch; flex-direction: column; gap: 9px; }
+      .records { justify-content: flex-start; flex-wrap: wrap; gap: 10px; padding-left: 35px; }
+      .probability { max-width: none; align-items: center; flex-direction: row; gap: 7px; text-align: left; }
+      .upload-button { min-height: 42px; padding: 0 12px; }
+      .sound-toggle { width: 44px; padding: 0; }
+      .sound-toggle span { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <header class="topbar">
+      <div class="brand-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M3.2 13.1c.7-2.4 4-4.1 8.8-4.1s8.1 1.7 8.8 4.1c-.7 2-4 3.3-8.8 3.3s-8.1-1.3-8.8-3.3Z" stroke="currentColor" stroke-width="1.5"/><path d="M8.1 9.4c.3-2.2 1.7-3.7 3.9-3.7s3.6 1.5 3.9 3.7M5.8 18.1l1.3 1.6m5-1.2v2m5-2.4 1.2 1.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="13" r=".8" fill="currentColor"/><circle cx="12" cy="13.5" r=".8" fill="currentColor"/><circle cx="16" cy="13" r=".8" fill="currentColor"/></svg>
+      </div>
+      <span>OSHI ABDUCTION LAB</span>
+      <span class="brand-jp">推し誘拐観測所</span>
+      <span class="brand-spacer"></span>
+      <span class="status-chip">観測システム稼働中</span>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="title">
+        <div class="eyebrow"><span class="eyebrow-mark">✦</span> あなたの推しを宇宙へ <span class="eyebrow-mark">✦</span></div>
+        <h1 id="title">推しがUFOに<span class="gradient-text">攫われる</span><br>ジェネレーター</h1>
+      </section>
+
+      <section class="generator" aria-label="UFO誘拐ジェネレーター">
+        <div class="stage-wrap">
+          <div class="stage" id="stage" aria-label="UFOが推しを浮かせるアニメーション">
+            <div class="planet" aria-hidden="true"></div>
+            <div class="ground-glow" aria-hidden="true"></div>
+            <div class="target-glow" aria-hidden="true"></div>
+            <div class="beam" id="beam" aria-hidden="true"></div>
+            <div class="light-rings" id="lightRings" aria-hidden="true"></div>
+            <div class="fx-layer" id="fxLayer" aria-hidden="true"></div>
+            <div class="star-layer" id="starLayer" aria-hidden="true"></div>
+            <div class="capture-tool" id="captureTool" aria-hidden="true">
+              <svg viewBox="0 0 220 500" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="toolMetal" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#7199ad"/><stop offset=".25" stop-color="#f6ffff"/><stop offset=".55" stop-color="#8ed3e6"/><stop offset=".82" stop-color="#f6ffff"/><stop offset="1" stop-color="#658b9c"/></linearGradient>
+                </defs>
+                <path class="tool-cable" d="M110 0V365"/>
+                <path class="tool-cable-highlight" d="M108 4V350"/>
+                <circle class="tool-joint" cx="110" cy="367" r="14"/>
+                <g class="tool-shape claw-open">
+                  <path class="tool-grip" d="M108 373C83 387 54 408 48 439C44 459 60 477 82 480L99 481"/>
+                  <path class="tool-grip" d="M112 373C137 387 166 408 172 439C176 459 160 477 138 480L121 481"/>
+                  <path class="tool-grip-highlight" d="M108 373C83 387 54 408 48 439"/>
+                  <path class="tool-grip-highlight" d="M112 373C137 387 166 408 172 439"/>
+                </g>
+                <g class="tool-shape claw-closed">
+                  <path class="tool-grip" d="M108 373C89 390 76 411 80 443C82 462 95 476 108 481"/>
+                  <path class="tool-grip" d="M112 373C131 390 144 411 140 443C138 462 125 476 112 481"/>
+                  <path class="tool-grip-highlight" d="M108 373C89 390 76 411 80 443"/>
+                  <path class="tool-grip-highlight" d="M112 373C131 390 144 411 140 443"/>
+                </g>
+                <g class="tool-shape tongs-open">
+                  <path class="tool-grip" d="M110 373C87 392 77 423 55 480"/>
+                  <path class="tool-grip" d="M110 373C133 392 143 423 165 480"/>
+                  <path class="tool-grip-highlight" d="M110 377C91 398 82 426 62 477"/>
+                  <path class="tool-grip-highlight" d="M110 377C129 398 138 426 158 477"/>
+                </g>
+                <g class="tool-shape tongs-closed">
+                  <path class="tool-grip" d="M110 373C99 397 99 433 98 480"/>
+                  <path class="tool-grip" d="M110 373C121 397 121 433 122 480"/>
+                  <path class="tool-grip-highlight" d="M110 377C102 402 102 435 102 477"/>
+                  <path class="tool-grip-highlight" d="M110 377C118 402 118 435 118 477"/>
+                </g>
+              </svg>
+            </div>
+            <div class="flyby-ufo" id="flybyUfo" aria-hidden="true">
+              <svg viewBox="0 0 180 108">
+                <path d="M58 48C60 28 72 17 90 17s30 11 32 31l-12 11H70L58 48Z" fill="#a7e9f4" fill-opacity=".88" stroke="#efffff" stroke-width="2"/>
+                <path d="M12 59c8-12 39-19 78-19s70 7 78 19c-5 15-38 25-78 25S17 74 12 59Z" fill="#b5cafa" stroke="#efffff" stroke-width="2"/>
+                <path d="M16 59c13 9 40 13 74 13s61-4 74-13" fill="none" stroke="#fff" stroke-width="3" opacity=".9"/>
+                <circle cx="52" cy="63" r="4" fill="#fff4b5"/><circle cx="77" cy="67" r="4" fill="#fff4b5"/><circle cx="103" cy="67" r="4" fill="#fff4b5"/><circle cx="128" cy="63" r="4" fill="#fff4b5"/>
+              </svg>
+            </div>
+            <div class="ufo" id="ufo" aria-hidden="true">
+              <svg viewBox="0 0 190 116" role="img" aria-label="UFO">
+                <defs>
+                  <linearGradient id="saucerBody" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5ffff"/><stop offset=".28" stop-color="#83e9f5"/><stop offset=".62" stop-color="#9294ed"/><stop offset="1" stop-color="#ef9add"/></linearGradient>
+                  <linearGradient id="dome" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#e7ffff" stop-opacity=".98"/><stop offset="1" stop-color="#73c7e8" stop-opacity=".67"/></linearGradient>
+                  <linearGradient id="rim" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#fff"/><stop offset=".5" stop-color="#a9ffff"/><stop offset="1" stop-color="#ffe0ff"/></linearGradient>
+                </defs>
+                <ellipse cx="95" cy="101" rx="70" ry="8" fill="#77e5ff" opacity=".18"/>
+                <path d="M61 54c2-20 15-34 34-34s32 14 34 34l-11 10H72L61 54Z" fill="url(#dome)" stroke="#d9ffff" stroke-opacity=".8" stroke-width="2"/>
+                <path d="M73 48c4-12 11-18 22-18" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="3" stroke-linecap="round"/>
+                <path d="M12 64c8-14 41-22 83-22s75 8 83 22c-5 16-39 27-83 27S17 80 12 64Z" fill="url(#saucerBody)" stroke="#e7ffff" stroke-width="2"/>
+                <path d="M14 63c14 11 43 16 81 16s67-5 81-16" fill="none" stroke="url(#rim)" stroke-width="4" stroke-linecap="round"/>
+                <path d="M29 74c15 8 39 12 66 12s51-4 66-12" fill="none" stroke="#484985" stroke-opacity=".4" stroke-width="2"/>
+                <circle cx="44" cy="66" r="4" fill="#fff5b5"/><circle cx="70" cy="72" r="4" fill="#fff5b5"/><circle cx="95" cy="74" r="4" fill="#fff5b5"/><circle cx="120" cy="72" r="4" fill="#fff5b5"/><circle cx="146" cy="66" r="4" fill="#fff5b5"/>
+                <path d="M40 96l-4 9m40-7-2 10m43-10 2 10m34-12 4 9" stroke="#8df1ff" stroke-width="3" stroke-linecap="round" opacity=".8"/>
+              </svg>
+            </div>
+
+            <div class="character" id="character">
+              <div class="portrait-frame" id="portraitFrame">
+                <img id="portrait" alt="画像" hidden>
+                <div class="placeholder" id="placeholder" aria-hidden="true">
+                  <div class="placeholder-orbit"><span>✦</span></div>
+                </div>
+              </div>
+              <span class="anger-mark" aria-hidden="true">💢</span>
+            </div>
+            <div class="decoy-object" id="decoyObject" hidden aria-hidden="true"></div>
+            <div class="alien" id="alien" hidden aria-hidden="true">
+              <svg viewBox="0 0 100 154" preserveAspectRatio="xMidYMax meet">
+                <defs>
+                  <radialGradient id="alienSkin" cx="42%" cy="30%" r="72%"><stop stop-color="#e4ece9"/><stop offset=".55" stop-color="#aebbb9"/><stop offset="1" stop-color="#748387"/></radialGradient>
+                  <linearGradient id="alienSuit" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#c2ceca"/><stop offset=".55" stop-color="#869497"/><stop offset="1" stop-color="#637276"/></linearGradient>
+                </defs>
+                <ellipse cx="50" cy="149" rx="29" ry="4" fill="rgba(5,8,22,.38)"/>
+                <g class="alien-limb alien-leg-left">
+                  <path d="M43 111 39 133 33 145" fill="none" stroke="#879597" stroke-width="9" stroke-linecap="round"/>
+                  <path d="M34 143Q28 142 23 147Q22 150 34 151L41 148Z" fill="#89999a"/>
+                </g>
+                <g class="alien-limb alien-leg-right">
+                  <path d="M57 111 62 132 69 145" fill="none" stroke="#a8b6b4" stroke-width="9" stroke-linecap="round"/>
+                  <path d="M68 143Q75 142 80 147Q81 150 69 151L62 148Z" fill="#9eacab"/>
+                </g>
+                <g class="alien-limb alien-arm-left">
+                  <path d="M39 77Q30 83 27 98L22 108" fill="none" stroke="#aab8b7" stroke-width="8" stroke-linecap="round"/>
+                  <circle cx="21" cy="110" r="5" fill="#b5c1bf"/>
+                </g>
+                <g class="alien-limb alien-arm-right">
+                  <path d="M61 77Q70 83 73 98L78 108" fill="none" stroke="#8e9c9e" stroke-width="8" stroke-linecap="round"/>
+                  <circle cx="79" cy="110" r="5" fill="#9aa7a8"/>
+                </g>
+                <path d="M40 75Q50 70 60 75L67 111Q51 120 33 111Z" fill="url(#alienSuit)" stroke="#647477" stroke-width="1.5"/>
+                <path d="M43 82 50 87 57 82M50 87V111" fill="none" stroke="#d7e0dc" stroke-opacity=".72" stroke-width="2"/>
+                <ellipse cx="50" cy="42" rx="29" ry="37" fill="url(#alienSkin)" stroke="#778589" stroke-width="1.5"/>
+                <path d="M24 45Q32 28 44 42Q40 57 29 57Q23 54 24 45Z" fill="#111722"/>
+                <path d="M76 45Q68 28 56 42Q60 57 71 57Q77 54 76 45Z" fill="#111722"/>
+                <path d="M28 43Q33 35 40 39" fill="none" stroke="#d8e5e1" stroke-opacity=".62" stroke-width="2" stroke-linecap="round"/>
+                <path d="M72 43Q67 35 60 39" fill="none" stroke="#d8e5e1" stroke-opacity=".62" stroke-width="2" stroke-linecap="round"/>
+                <path d="M45 64Q50 67 55 64" fill="none" stroke="#6b7b7e" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="control-bar">
+          <div class="upload-group">
+            <label class="upload-button" for="imageInput" tabindex="0">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14.5v3A2.5 2.5 0 0 0 7.5 20h9a2.5 2.5 0 0 0 2.5-2.5v-3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              画像を選ぶ
+            </label>
+            <input id="imageInput" type="file" accept="image/*" hidden>
+          </div>
+          <div class="action-group">
+            <button class="sound-toggle" id="soundToggle" type="button" aria-pressed="true" aria-label="サウンドをオフにする" title="サウンドをオフにする">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M4 10v4h3.2l4.3 3.4V6.6L7.2 10H4Z" fill="currentColor"/>
+                <path class="sound-wave" d="M14.5 9a4.2 4.2 0 0 1 0 6m2.7-8.5a7.8 7.8 0 0 1 0 11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                <path class="mute-mark" d="m15 9 6 6m0-6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+              <span id="soundToggleText">音 ON</span>
+            </button>
+            <button class="return-button" id="returnButton" type="button" hidden>↺ 推しを帰還させる</button>
+            <button class="launch-button" id="launchButton" type="button">
+              <span class="sparkle" aria-hidden="true">✦</span>
+              <span id="launchText">UFOを呼ぶ</span>
+              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3.5 10h12m0 0-4.5-4.5m4.5 4.5-4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="message-row">
+          <div class="status-box">
+            <span class="status-icon" id="statusIcon" aria-hidden="true">✦</span>
+            <p class="status-text" id="statusText" aria-live="polite">画像を選ぶか、そのままUFOを呼んでみてね。</p>
+          </div>
+          <div class="records" aria-label="観測記録">
+            <div class="probability"><strong>予測不能</strong><span>何が起きるかはお楽しみ</span></div>
+            <span class="record-divider" aria-hidden="true"></span>
+            <div class="record"><span>生還</span><strong id="safeCount">0</strong></div>
+            <div class="record"><span>捕獲</span><strong id="captureCount">0</strong></div>
+          </div>
+        </div>
+        <section class="collection-panel" aria-labelledby="collectionTitle">
+          <div class="collection-heading">
+            <div>
+              <p class="collection-kicker">DISCOVERED</p>
+              <h2 class="collection-title" id="collectionTitle">身代わりコレクション</h2>
+            </div>
+            <span class="collection-count" id="collectionCount" aria-live="polite">0種発見</span>
+          </div>
+          <div class="collection-items" id="collectionItems" aria-label="発見した身代わり"></div>
+          <p class="collection-empty" id="collectionEmpty">出会ったものだけ、ここに記録されます。</p>
+        </section>
+        <p class="privacy-note">選んだ画像は送信・保存されません。身代わりの発見記録だけ、このブラウザ内に保存されます。</p>
+        <p class="hero-copy bottom-copy">UFOは毎回、真上から光線を照射。<strong>推しは毎回ふわふわ浮遊！</strong><br>この銀河で何が起きるか、どんなものが現れるかはお楽しみ…！</p>
+      </section>
+    </main>
+
+    <footer>MADE FOR YOUR OSHI · PLEASE RETURN SAFELY FROM THE GALAXY</footer>
+  </div>
+
+  <script>
+    (() => {
+      const stage = document.getElementById('stage');
+      const beam = document.getElementById('beam');
+      const lightRings = document.getElementById('lightRings');
+      const captureTool = document.getElementById('captureTool');
+      const flybyUfo = document.getElementById('flybyUfo');
+      const ufo = document.getElementById('ufo');
+      const character = document.getElementById('character');
+      const decoyObject = document.getElementById('decoyObject');
+      const alien = document.getElementById('alien');
+      const portrait = document.getElementById('portrait');
+      const placeholder = document.getElementById('placeholder');
+      const imageInput = document.getElementById('imageInput');
+      const statusText = document.getElementById('statusText');
+      const launchButton = document.getElementById('launchButton');
+      const launchText = document.getElementById('launchText');
+      const returnButton = document.getElementById('returnButton');
+      const soundToggle = document.getElementById('soundToggle');
+      const soundToggleText = document.getElementById('soundToggleText');
+      const fxLayer = document.getElementById('fxLayer');
+      const starLayer = document.getElementById('starLayer');
+      const safeCountDisplay = document.getElementById('safeCount');
+      const captureCountDisplay = document.getElementById('captureCount');
+      const collectionCount = document.getElementById('collectionCount');
+      const collectionItems = document.getElementById('collectionItems');
+      const collectionEmpty = document.getElementById('collectionEmpty');
+
+      const gimmicks = [
+        { top: 'rgba(198, 250, 255, .58)', mid: 'rgba(113, 220, 255, .2)', bottom: 'rgba(173, 173, 255, .23)', color: '#b9f4ff', symbols: ['✦', '✧', '⋆', '✴'] },
+        { top: 'rgba(255, 220, 246, .58)', mid: 'rgba(255, 149, 206, .2)', bottom: 'rgba(255, 179, 219, .24)', color: '#ffadd8', symbols: ['♡', '♥', '♡', '✧'] },
+        { top: 'rgba(236, 218, 255, .58)', mid: 'rgba(182, 145, 255, .2)', bottom: 'rgba(255, 173, 232, .23)', color: '#dfc2ff', symbols: ['♪', '♫', '♬', '✦'] },
+        { top: 'rgba(217, 255, 236, .56)', mid: 'rgba(111, 255, 206, .2)', bottom: 'rgba(184, 255, 216, .23)', color: '#adffe1', symbols: ['⚡', '〰', '✦', '⚡'] }
+      ];
+
+      const decoyObjects = [
+        { id: 'can', emoji: '🥫', name: '謎の缶' },
+        { id: 'cow', emoji: '🐄', name: '牛' },
+        { id: 'glasses', emoji: '👓', name: 'メガネ' },
+        { id: 'pudding', emoji: '🍮', name: 'プリン' },
+        { id: 'plant', emoji: '🪴', name: '観葉植物' },
+        { id: 'sock', emoji: '', name: '片方だけの靴下' },
+        { id: 'toilet', emoji: '🚽', name: 'トイレ' },
+        { id: 'duck', emoji: '🦆', name: 'アヒル' },
+        { id: 'gold', emoji: '🪙', name: '金塊' },
+        { id: 'snowman', emoji: '⛄', name: '雪だるま' }
+      ];
+
+      let timers = [];
+      const decoyStorageKey = 'oshi-abduction-discovered-decoys-v1';
+      let discoveredDecoys = new Set();
+      let outcomeDeck = [];
+      let outcomeCycle = [];
+      let gimmickBag = [];
+      let lastGimmick = null;
+      let decoyBag = [];
+      let lastDecoyItem = null;
+      const beamModeCycle = ['cone', 'cone', 'cone', 'cylinder', 'cone', 'cone', 'cone', 'rings'];
+      let beamModeIndex = Math.floor(Math.random() * beamModeCycle.length);
+      const captureMethodCycle = ['beam', 'claw', 'beam', 'tongs'];
+      let captureMethodIndex = Math.floor(Math.random() * captureMethodCycle.length);
+      let running = false;
+      let imageUrl = null;
+      let safeRuns = 0;
+      let captureRuns = 0;
+      const starColors = ['#ffe56b', '#c8f46e', '#7be7ff', '#c7a2ff'];
+      let starRunNumber = 0;
+      let starRainOffset = Math.floor(Math.random() * 10);
+      let starColorIndex = Math.floor(Math.random() * starColors.length);
+      let soundEnabled = true;
+      let audioContext = null;
+
+      function later(callback, delay) {
+        const timer = window.setTimeout(callback, delay);
+        timers.push(timer);
+        return timer;
+      }
+
+      function clearTimers() {
+        timers.forEach(window.clearTimeout);
+        timers = [];
+      }
+
+      // Every 30 summons: 10 captures, 3 decoys, 2 breakdowns, and 1 or 2 alien visits.
+      function buildOutcomeCycle() {
+        const length = 120;
+        const fixed = Array(length).fill(null);
+        for (let i = 4; i < length; i += 10) fixed[i] = 'decoy';
+        for (let i = 7; i < length; i += 15) fixed[i] = 'broken';
+        for (let i = 11; i < length; i += 20) fixed[i] = 'alien';
+
+        const blockCounts = [
+          [['captured', 7], ['passby', 3], ['heavy', 5], ['discarded', 5], ['safe', 4]],
+          [['captured', 7], ['passby', 4], ['heavy', 4], ['discarded', 4], ['safe', 4]],
+          [['captured', 7], ['passby', 4], ['heavy', 5], ['discarded', 5], ['safe', 3]],
+          [['captured', 7], ['passby', 4], ['heavy', 4], ['discarded', 4], ['safe', 4]]
+        ];
+        const deck = fixed.slice();
+
+        for (let block = 0; block < 4; block++) {
+          const counts = blockCounts[block];
+          const remaining = Object.fromEntries(counts);
+          const credit = Object.fromEntries(counts.map(([name]) => [name, 0]));
+          const fillCount = counts.reduce((sum, [, count]) => sum + count, 0);
+          const first = block * 30;
+
+          for (let i = first; i < first + 30; i++) {
+            if (deck[i] !== null) continue;
+            for (const [name, count] of counts) credit[name] += count;
+            const previous = deck[(i + length - 1) % length];
+            const next = deck[(i + 1) % length];
+            let candidates = counts.filter(([name]) => remaining[name] > 0 && name !== previous && (next === null || name !== next));
+            if (!candidates.length) candidates = counts.filter(([name]) => remaining[name] > 0 && name !== previous);
+            const bestCredit = Math.max(...candidates.map(([name]) => credit[name]));
+            const best = candidates.filter(([name]) => credit[name] === bestCredit);
+            const selected = best[Math.floor(Math.random() * best.length)][0];
+            deck[i] = selected;
+            remaining[selected] -= 1;
+            credit[selected] -= fillCount;
+          }
+        }
+
+        // Keep the cycle seamless: no category repeats across its boundary.
+        if (deck[0] === deck[length - 1]) {
+          for (let i = length - 2; i > 0; i--) {
+            if (fixed[i] !== null) continue;
+            [deck[i], deck[length - 1]] = [deck[length - 1], deck[i]];
+            const repeats = deck.some((item, index) => item === deck[(index + 1) % length]);
+            if (!repeats) break;
+            [deck[i], deck[length - 1]] = [deck[length - 1], deck[i]];
+          }
+        }
+
+        const offset = Math.floor(Math.random() * 4) * 30;
+        return deck.slice(offset).concat(deck.slice(0, offset));
+      }
+
+      function drawOutcome() {
+        if (!outcomeCycle.length) outcomeCycle = buildOutcomeCycle();
+        if (!outcomeDeck.length) outcomeDeck = outcomeCycle.slice();
+        return outcomeDeck.shift();
+      }
+
+      function shuffleInPlace(items) {
+        for (let i = items.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [items[i], items[j]] = [items[j], items[i]];
+        }
+        return items;
+      }
+
+      function drawGimmick() {
+        if (!gimmickBag.length) {
+          gimmickBag = shuffleInPlace(gimmicks.slice());
+          if (lastGimmick && gimmickBag[0] === lastGimmick) {
+            [gimmickBag[0], gimmickBag[1]] = [gimmickBag[1], gimmickBag[0]];
+          }
+        }
+        lastGimmick = gimmickBag.shift();
+        return lastGimmick;
+      }
+
+      function drawDecoyItem() {
+        if (!decoyBag.length) {
+          decoyBag = shuffleInPlace(decoyObjects.slice());
+          if (lastDecoyItem && decoyBag[0] === lastDecoyItem) {
+            [decoyBag[0], decoyBag[1]] = [decoyBag[1], decoyBag[0]];
+          }
+        }
+        lastDecoyItem = decoyBag.shift();
+        return lastDecoyItem;
+      }
+
+      function restoreDecoyCollection() {
+        try {
+          const saved = JSON.parse(window.localStorage.getItem(decoyStorageKey) || '[]');
+          const validIds = new Set(decoyObjects.map(item => item.id));
+          if (Array.isArray(saved)) discoveredDecoys = new Set(saved.filter(id => validIds.has(id)));
+        } catch (error) {
+          discoveredDecoys = new Set();
+        }
+      }
+
+      function createSingleSockIcon() {
+        const svgNamespace = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(svgNamespace, 'svg');
+        svg.setAttribute('viewBox', '0 0 64 64');
+        svg.setAttribute('class', 'single-sock-icon');
+        svg.setAttribute('aria-hidden', 'true');
+        svg.setAttribute('focusable', 'false');
+
+        const sock = document.createElementNS(svgNamespace, 'path');
+        sock.setAttribute('d', 'M22 6H42V31C42 36 45 39 51 41L57 43C62 45 62 51 58 55C56 57 53 58 49 58H20C13 58 9 54 10 48C10 43 15 40 20 37C22 35 23 32 23 28V6Z');
+        sock.setAttribute('fill', '#75d9f3');
+        sock.setAttribute('stroke', '#effcff');
+        sock.setAttribute('stroke-width', '2.5');
+        sock.setAttribute('stroke-linejoin', 'round');
+        svg.appendChild(sock);
+
+        const cuff = document.createElementNS(svgNamespace, 'path');
+        cuff.setAttribute('d', 'M23 7H41V17H23Z');
+        cuff.setAttribute('fill', '#ffe69a');
+        cuff.setAttribute('stroke', '#fff8dc');
+        cuff.setAttribute('stroke-width', '1.5');
+        cuff.setAttribute('stroke-linejoin', 'round');
+        svg.appendChild(cuff);
+
+        const stripe = document.createElementNS(svgNamespace, 'path');
+        stripe.setAttribute('d', 'M24 12H40M24 15H40');
+        stripe.setAttribute('fill', 'none');
+        stripe.setAttribute('stroke', '#d5aa59');
+        stripe.setAttribute('stroke-width', '1.5');
+        stripe.setAttribute('stroke-linecap', 'round');
+        svg.appendChild(stripe);
+        return svg;
+      }
+
+      function setDecoyVisual(element, item) {
+        element.replaceChildren();
+        if (item.id === 'sock') element.appendChild(createSingleSockIcon());
+        else element.textContent = item.emoji;
+      }
+
+      function renderDecoyCollection() {
+        const found = Array.from(discoveredDecoys)
+          .map(id => decoyObjects.find(item => item.id === id))
+          .filter(Boolean);
+        collectionItems.replaceChildren();
+        found.forEach(item => {
+          const entry = document.createElement('span');
+          entry.className = 'collection-item';
+          const emoji = document.createElement('span');
+          emoji.className = 'collection-emoji';
+          setDecoyVisual(emoji, item);
+          emoji.setAttribute('aria-hidden', 'true');
+          const name = document.createElement('span');
+          name.className = 'collection-name';
+          name.textContent = item.name;
+          entry.append(emoji, name);
+          collectionItems.appendChild(entry);
+        });
+        collectionCount.textContent = found.length === decoyObjects.length && found.length > 0
+          ? 'コンプリート！'
+          : `${found.length}種発見`;
+        collectionEmpty.hidden = found.length > 0;
+      }
+
+      function recordDecoyDiscovery(item) {
+        if (discoveredDecoys.has(item.id)) return;
+        discoveredDecoys.add(item.id);
+        try {
+          window.localStorage.setItem(decoyStorageKey, JSON.stringify(Array.from(discoveredDecoys)));
+        } catch (error) {
+          // Storage may be unavailable in a restricted preview; the in-memory collection still works.
+        }
+        renderDecoyCollection();
+      }
+
+      function drawBeamMode() {
+        const mode = beamModeCycle[beamModeIndex];
+        beamModeIndex = (beamModeIndex + 1) % beamModeCycle.length;
+        return mode;
+      }
+
+      function drawCaptureMethod() {
+        const method = captureMethodCycle[captureMethodIndex];
+        captureMethodIndex = (captureMethodIndex + 1) % captureMethodCycle.length;
+        return method;
+      }
+
+      function drawStarRainColor() {
+        const showStars = (starRunNumber + starRainOffset) % 10 === 0;
+        starRunNumber += 1;
+        if (!showStars) return null;
+        const color = starColors[starColorIndex];
+        starColorIndex = (starColorIndex + 1) % starColors.length;
+        return color;
+      }
+
+      function clearBeamTheme() {
+        stage.style.removeProperty('--beam-top');
+        stage.style.removeProperty('--beam-mid');
+        stage.style.removeProperty('--beam-bottom');
+      }
+
+      function shutOffBeam() {
+        beam.className = 'beam';
+        beam.style.top = '';
+        beam.style.clipPath = '';
+        clearBeamTheme();
+        lightRings.replaceChildren();
+        stage.classList.remove('illuminated');
+      }
+
+      function resetScene() {
+        clearTimers();
+        running = false;
+        stage.classList.remove('has-captured', 'illuminated', 'drag-over');
+        stage.removeAttribute('data-side');
+        shutOffBeam();
+        captureTool.className = 'capture-tool';
+        captureTool.style.top = '';
+        captureTool.style.height = '';
+        flybyUfo.className = 'flyby-ufo';
+        decoyObject.hidden = true;
+        decoyObject.className = 'decoy-object';
+        decoyObject.textContent = '';
+        decoyObject.style.removeProperty('--decoy-dx');
+        decoyObject.style.removeProperty('--decoy-dy');
+        decoyObject.style.removeProperty('--decoy-dx-mid');
+        decoyObject.style.removeProperty('--decoy-dy-mid');
+        decoyObject.style.removeProperty('--decoy-dx-near');
+        decoyObject.style.removeProperty('--decoy-dy-near');
+        alien.hidden = true;
+        alien.className = 'alien';
+        alien.style.removeProperty('--alien-drop-start');
+        ufo.className = 'ufo';
+        ufo.style.left = '';
+        ufo.style.removeProperty('--malfunction-x');
+        character.className = 'character';
+        character.style.removeProperty('--abduct-dy');
+        character.style.removeProperty('--abduct-dy-mid');
+        character.style.removeProperty('--abduct-dy-near');
+        fxLayer.replaceChildren();
+        starLayer.replaceChildren();
+        returnButton.hidden = true;
+        launchButton.disabled = false;
+        launchText.textContent = 'UFOを呼ぶ';
+      }
+
+      function setStatus(message) {
+        statusText.textContent = message;
+      }
+
+      function updateSoundToggle() {
+        soundToggle.setAttribute('aria-pressed', String(soundEnabled));
+        soundToggle.classList.toggle('muted', !soundEnabled);
+        soundToggleText.textContent = soundEnabled ? '音 ON' : '音 OFF';
+        const label = soundEnabled ? 'サウンドをオフにする' : 'サウンドをオンにする';
+        soundToggle.setAttribute('aria-label', label);
+        soundToggle.title = label;
+      }
+
+      function getAudioContext() {
+        if (!soundEnabled) return null;
+        const AudioConstructor = window.AudioContext || window.webkitAudioContext;
+        if (!AudioConstructor) return null;
+        try {
+          if (!audioContext) audioContext = new AudioConstructor();
+          if (audioContext.state === 'suspended') audioContext.resume().catch(() => {});
+          return audioContext;
+        } catch (error) {
+          return null;
+        }
+      }
+
+      function playTone(startHz, endHz, duration, waveform, volume, delay = 0) {
+        if (!soundEnabled) return;
+        const context = getAudioContext();
+        if (!context) return;
+        try {
+          const start = context.currentTime + delay;
+          const end = start + duration;
+          const oscillator = context.createOscillator();
+          const gain = context.createGain();
+          oscillator.type = waveform;
+          oscillator.frequency.setValueAtTime(startHz, start);
+          oscillator.frequency.exponentialRampToValueAtTime(Math.max(20, endHz), end);
+          gain.gain.setValueAtTime(.0001, start);
+          gain.gain.exponentialRampToValueAtTime(Math.max(.0002, volume), start + .025);
+          gain.gain.exponentialRampToValueAtTime(.0001, end);
+          oscillator.connect(gain);
+          gain.connect(context.destination);
+          oscillator.start(start);
+          oscillator.stop(end + .03);
+        } catch (error) {
+          // Audio is optional; a restricted browser can still run every visual effect.
+        }
+      }
+
+      function playSfx(name) {
+        if (!soundEnabled) return;
+        switch (name) {
+          case 'ufo':
+            playTone(170, 650, .62, 'sine', .024);
+            playTone(420, 760, .42, 'triangle', .009, .08);
+            break;
+          case 'beam':
+            playTone(118, 142, .46, 'sine', .018);
+            playTone(236, 284, .42, 'triangle', .006, .04);
+            break;
+          case 'capture':
+            playTone(460, 880, .34, 'sine', .022);
+            playTone(760, 1220, .28, 'triangle', .012, .13);
+            break;
+          case 'decoy':
+            playTone(790, 1180, .18, 'triangle', .022);
+            playTone(1180, 760, .26, 'sine', .016, .16);
+            break;
+          case 'tool':
+            playTone(520, 410, .24, 'triangle', .018);
+            break;
+          case 'grip':
+            playTone(260, 390, .2, 'sine', .022);
+            break;
+          case 'strain':
+            playTone(185, 105, .48, 'sawtooth', .014);
+            playTone(125, 78, .5, 'sine', .009, .08);
+            break;
+          case 'oops':
+            playTone(720, 300, .34, 'triangle', .02);
+            break;
+          case 'malfunction':
+            playTone(380, 88, .55, 'sawtooth', .016);
+            playTone(230, 115, .45, 'square', .007, .1);
+            break;
+          case 'alien':
+            playTone(490, 350, .16, 'sine', .02);
+            playTone(640, 880, .15, 'triangle', .013, .2);
+            playTone(530, 420, .17, 'sine', .012, .42);
+            break;
+          case 'flyby':
+            playTone(250, 720, .44, 'sine', .018);
+            break;
+          case 'safe':
+            playTone(560, 700, .2, 'sine', .012);
+            playTone(720, 990, .32, 'sine', .016, .13);
+            break;
+          case 'stars':
+            playTone(740, 1080, .2, 'sine', .012);
+            playTone(980, 1320, .26, 'triangle', .008, .16);
+            break;
+          case 'return':
+            playTone(520, 790, .28, 'sine', .016);
+            break;
+          case 'toggle':
+            playTone(680, 900, .1, 'sine', .012);
+            break;
+        }
+      }
+
+      function rainStars(color) {
+        const shapes = ['✦', '★', '✧'];
+        starLayer.replaceChildren();
+        for (let i = 0; i < 18; i++) {
+          const star = document.createElement('span');
+          const drift = (Math.random() - .5) * 150;
+          const spin = (Math.random() < .5 ? -1 : 1) * (180 + Math.random() * 540);
+          star.className = 'falling-star';
+          star.textContent = shapes[Math.floor(Math.random() * shapes.length)];
+          star.style.left = (Math.random() * 100) + '%';
+          star.style.top = (-20 - Math.random() * 75) + 'px';
+          star.style.setProperty('--star-color', color);
+          star.style.setProperty('--star-size', (15 + Math.random() * 12) + 'px');
+          star.style.setProperty('--star-drift', drift + 'px');
+          star.style.setProperty('--star-fall', (stage.clientHeight + 90 + Math.random() * 35) + 'px');
+          star.style.setProperty('--star-spin', spin + 'deg');
+          star.style.setProperty('--star-duration', (3.4 + Math.random() * 1.8) + 's');
+          star.style.setProperty('--star-delay', (Math.random() * .9) + 's');
+          starLayer.appendChild(star);
+        }
+        playSfx('stars');
+        later(() => starLayer.replaceChildren(), 7000);
+      }
+
+      function scatterGimmick(gimmick) {
+        fxLayer.replaceChildren();
+        for (let i = 0; i < 10; i++) {
+          const particle = document.createElement('span');
+          particle.className = 'particle';
+          particle.textContent = gimmick.symbols[i % gimmick.symbols.length];
+          particle.style.left = (29 + Math.random() * 42) + '%';
+          particle.style.top = (43 + Math.random() * 27) + '%';
+          particle.style.setProperty('--drift', ((Math.random() - .5) * 90) + 'px');
+          particle.style.setProperty('--particle-color', gimmick.color);
+          particle.style.setProperty('--particle-duration', (1.35 + Math.random() * .7) + 's');
+          particle.style.animationDelay = (Math.random() * .35) + 's';
+          fxLayer.appendChild(particle);
+        }
+      }
+
+      function startLightRings(gimmick) {
+        lightRings.replaceChildren();
+        for (let i = 0; i < 3; i++) {
+          const ring = document.createElement('span');
+          const width = Math.min(Math.max(stage.clientWidth * .38, 150) + i * 36, 300);
+          ring.className = 'light-ring';
+          ring.style.setProperty('--ring-top', (64 + i * 4) + '%');
+          ring.style.setProperty('--ring-width', width + 'px');
+          ring.style.setProperty('--ring-height', Math.max(22, width * .17) + 'px');
+          ring.style.setProperty('--ring-color', gimmick.color);
+          ring.style.setProperty('--ring-delay', (i * .28) + 's');
+          lightRings.appendChild(ring);
+        }
+      }
+
+      function showAngerMark() {
+        character.classList.remove('angry');
+        void character.offsetWidth;
+        character.classList.add('angry');
+      }
+
+      function cssLengthInPixels(value, reference) {
+        const amount = parseFloat(value) || 0;
+        return value.trim().endsWith('%') ? reference * amount / 100 : amount;
+      }
+
+      function getCharacterCenterY() {
+        const stageHeight = stage.clientHeight;
+        const bottom = cssLengthInPixels(getComputedStyle(character).bottom, stageHeight);
+        return stageHeight - bottom - character.offsetHeight / 2;
+      }
+
+      function setAbductionTarget() {
+        const targetY = ufo.offsetTop + ufo.offsetHeight * .72;
+        const dy = targetY - getCharacterCenterY();
+        character.style.setProperty('--abduct-dy', dy + 'px');
+        character.style.setProperty('--abduct-dy-mid', (dy * .62) + 'px');
+        character.style.setProperty('--abduct-dy-near', (dy * .92) + 'px');
+      }
+
+      function prepareDecoyAbduction(item) {
+        character.classList.remove('floating', 'page-flip');
+        character.classList.add('watching-object');
+        decoyObject.hidden = false;
+        setDecoyVisual(decoyObject, item);
+
+        const stageRect = stage.getBoundingClientRect();
+        const ufoRect = ufo.getBoundingClientRect();
+        const dx = ufoRect.left + ufoRect.width / 2 - (stageRect.left + stageRect.width / 2);
+        const dy = ufoRect.top + ufoRect.height * .72 - (stageRect.top + stageRect.height / 2);
+        decoyObject.style.setProperty('--decoy-dx', dx + 'px');
+        decoyObject.style.setProperty('--decoy-dy', dy + 'px');
+        decoyObject.style.setProperty('--decoy-dx-mid', (dx * .62) + 'px');
+        decoyObject.style.setProperty('--decoy-dy-mid', (dy * .62) + 'px');
+        decoyObject.style.setProperty('--decoy-dx-near', (dx * .92) + 'px');
+        decoyObject.style.setProperty('--decoy-dy-near', (dy * .92) + 'px');
+        decoyObject.className = 'decoy-object appearing';
+        setStatus('光線の狙いがそれた！？');
+      }
+
+      function sendAlienDown() {
+        alien.hidden = false;
+        const stageRect = stage.getBoundingClientRect();
+        const ufoRect = ufo.getBoundingClientRect();
+        const bottom = cssLengthInPixels(getComputedStyle(alien).bottom, stage.clientHeight);
+        const baseTop = stage.clientHeight - bottom - alien.offsetHeight;
+        const startTop = ufoRect.bottom - stageRect.top + 4;
+        alien.style.setProperty('--alien-drop-start', Math.min(-20, startTop - baseTop) + 'px');
+        alien.className = 'alien alien-descending';
+      }
+
+      function positionCaptureTool() {
+        const top = ufo.offsetTop + ufo.offsetHeight;
+        const height = Math.max(80, getCharacterCenterY() - top);
+        captureTool.style.top = top + 'px';
+        captureTool.style.height = height + 'px';
+      }
+
+      function finishSafely(message, bringPhotoBack = false) {
+        shutOffBeam();
+        captureTool.className = 'capture-tool';
+        captureTool.style.top = '';
+        captureTool.style.height = '';
+        flybyUfo.className = 'flyby-ufo';
+        alien.hidden = true;
+        alien.className = 'alien';
+        alien.style.removeProperty('--alien-drop-start');
+        ufo.className = 'ufo';
+        ufo.style.removeProperty('--malfunction-x');
+        character.className = bringPhotoBack ? 'character photo-returning' : 'character';
+        character.style.removeProperty('--abduct-dy');
+        character.style.removeProperty('--abduct-dy-mid');
+        character.style.removeProperty('--abduct-dy-near');
+        fxLayer.replaceChildren();
+        stage.classList.remove('illuminated', 'has-captured');
+        stage.removeAttribute('data-side');
+        returnButton.hidden = true;
+        running = false;
+        safeRuns += 1;
+        safeCountDisplay.textContent = String(safeRuns);
+        launchButton.disabled = false;
+        launchText.textContent = 'もう一度呼ぶ';
+        playSfx('safe');
+        setStatus(message);
+      }
+
+      function finishCapture() {
+        shutOffBeam();
+        captureTool.className = 'capture-tool';
+        captureTool.style.top = '';
+        captureTool.style.height = '';
+        flybyUfo.className = 'flyby-ufo';
+        ufo.classList.remove('hovering');
+        ufo.classList.add('leaving');
+        stage.classList.add('has-captured');
+        captureRuns += 1;
+        captureCountDisplay.textContent = String(captureRuns);
+        setStatus('攫われちゃった！推しは銀河の彼方へ…');
+      }
+
+      function finishObjectCapture(item) {
+        shutOffBeam();
+        captureTool.className = 'capture-tool';
+        captureTool.style.top = '';
+        captureTool.style.height = '';
+        flybyUfo.className = 'flyby-ufo';
+        decoyObject.hidden = true;
+        decoyObject.className = 'decoy-object';
+        decoyObject.textContent = '';
+        decoyObject.style.removeProperty('--decoy-dx');
+        decoyObject.style.removeProperty('--decoy-dy');
+        decoyObject.style.removeProperty('--decoy-dx-mid');
+        decoyObject.style.removeProperty('--decoy-dy-mid');
+        decoyObject.style.removeProperty('--decoy-dx-near');
+        decoyObject.style.removeProperty('--decoy-dy-near');
+        character.className = 'character photo-returning';
+        ufo.classList.remove('hovering');
+        ufo.classList.add('leaving');
+        fxLayer.replaceChildren();
+        captureRuns += 1;
+        captureCountDisplay.textContent = String(captureRuns);
+        returnButton.hidden = true;
+        setStatus(`${item.name}が代わりに攫われた！推しは無事！`);
+      }
+
+      function showImage(file) {
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+          setStatus('画像ファイルを選んでね。');
+          return;
+        }
+        resetScene();
+        if (imageUrl) URL.revokeObjectURL(imageUrl);
+        imageUrl = URL.createObjectURL(file);
+        portrait.src = imageUrl;
+        portrait.hidden = false;
+        placeholder.hidden = true;
+        setStatus('画像をセットしました。いつでもUFOを呼べます！');
+        imageInput.value = '';
+      }
+
+      function startSequence() {
+        if (running) return;
+        resetScene();
+        running = true;
+        playSfx('ufo');
+
+        const outcome = drawOutcome();
+        const starColor = drawStarRainColor();
+        const gimmick = drawGimmick();
+        const beamMode = drawBeamMode();
+        const passBy = outcome === 'passby';
+        const pageFlip = outcome === 'safe' && Math.random() < .35;
+        const anger = outcome === 'heavy' || outcome === 'discarded';
+        const objectAbduction = outcome === 'decoy';
+        const decoyItem = objectAbduction ? drawDecoyItem() : null;
+        const captureMethod = objectAbduction ? 'beam' : outcome === 'captured' ? drawCaptureMethod() : 'beam';
+
+        stage.dataset.side = 'top';
+        ufo.style.left = '50%';
+        ufo.className = 'ufo visible entering from-top';
+        beam.className = 'beam ' + beamMode;
+        beam.style.clipPath = beamMode === 'cylinder'
+          ? 'polygon(36% 0, 64% 0, 64% 100%, 36% 100%)'
+          : beamMode === 'rings'
+            ? 'polygon(47% 0, 53% 0, 53% 100%, 47% 100%)'
+            : 'polygon(47% 0, 53% 0, 84% 100%, 16% 100%)';
+        stage.style.setProperty('--beam-top', gimmick.top);
+        stage.style.setProperty('--beam-mid', gimmick.mid);
+        stage.style.setProperty('--beam-bottom', gimmick.bottom);
+        beam.style.top = (ufo.offsetTop + ufo.offsetHeight) + 'px';
+        setAbductionTarget();
+        launchButton.disabled = true;
+        launchText.textContent = 'UFO接近中…';
+        setStatus('UFOが真上に出現…');
+
+        later(() => {
+          ufo.classList.remove('entering');
+          ufo.classList.add('hovering');
+        }, 920);
+        later(() => {
+          beam.classList.add('on');
+          stage.classList.add('illuminated');
+          if (beamMode === 'rings') startLightRings(gimmick);
+          playSfx('beam');
+          setStatus('真上から光が降りそそぐ！');
+        }, 780);
+        later(() => {
+          character.classList.add('floating');
+          if (anger) showAngerMark();
+          if (starColor) rainStars(starColor);
+          scatterGimmick(gimmick);
+          setStatus('光線に包まれて、ふわふわ浮いてる…！');
+        }, 1450);
+        later(() => {
+          if (running && pageFlip && character.classList.contains('floating')) {
+            character.classList.remove('floating');
+            character.classList.add('page-flip');
+          }
+        }, 1700);
+        later(() => {
+          if (running && character.classList.contains('page-flip')) {
+            character.classList.remove('page-flip');
+            character.classList.add('floating');
+          }
+        }, 2900);
+        later(() => { if (running) scatterGimmick(gimmick); }, 2350);
+        later(() => { if (running) scatterGimmick(gimmick); }, 3330);
+
+        if (outcome === 'captured' || objectAbduction) {
+          if (objectAbduction) {
+            later(() => {
+              recordDecoyDiscovery(decoyItem);
+              prepareDecoyAbduction(decoyItem);
+              playSfx('decoy');
+              setStatus(`${decoyItem.name}が光線に選ばれた！？`);
+            }, 2600);
+            later(() => {
+              decoyObject.className = 'decoy-object taken';
+              setStatus(`${decoyItem.name}がUFOに吸い上げられていく…`);
+            }, 3250);
+            later(() => finishObjectCapture(decoyItem), 4780);
+            later(() => {
+              running = false;
+              launchButton.disabled = false;
+              launchText.textContent = 'もう一度呼ぶ';
+              returnButton.hidden = true;
+            }, 5900);
+          } else if (captureMethod === 'beam') {
+            later(() => {
+              character.classList.remove('floating', 'page-flip');
+              character.classList.add('abducting');
+              playSfx('capture');
+              setStatus('あっ…光線が強くなってきた！');
+            }, 2600);
+            later(finishCapture, 4140);
+            later(() => {
+              running = false;
+              launchButton.disabled = false;
+              launchText.textContent = 'もう一度試す';
+              returnButton.hidden = false;
+            }, 5400);
+          } else {
+            later(() => {
+              positionCaptureTool();
+              captureTool.className = 'capture-tool ' + captureMethod + ' deployed';
+              playSfx('tool');
+              setStatus(captureMethod === 'claw' ? 'UFOキャッチャーのアームが伸びてきた！' : 'トングが降りてきた！');
+            }, 2600);
+            later(() => {
+              captureTool.classList.add('closed');
+              character.classList.remove('floating', 'page-flip');
+              character.classList.add('gripped');
+              playSfx('grip');
+              setStatus('がっちり掴まれた！');
+            }, 3300);
+            later(() => {
+              character.classList.remove('gripped');
+              character.classList.add('abducting');
+              captureTool.classList.remove('deployed');
+              captureTool.classList.add('retracting');
+              setStatus('そのままUFOの中へ…！');
+            }, 3700);
+            later(finishCapture, 5200);
+            later(() => {
+              running = false;
+              launchButton.disabled = false;
+              launchText.textContent = 'もう一度試す';
+              returnButton.hidden = false;
+            }, 6500);
+          }
+        } else if (outcome === 'heavy') {
+          later(() => {
+            character.classList.remove('floating', 'page-flip');
+            character.classList.add('too-heavy');
+            showAngerMark();
+            ufo.classList.remove('hovering');
+            ufo.classList.add('straining');
+            beam.classList.add('strained');
+            stage.style.setProperty('--beam-top', 'rgba(255, 231, 171, .65)');
+            stage.style.setProperty('--beam-mid', 'rgba(255, 194, 112, .27)');
+            stage.style.setProperty('--beam-bottom', 'rgba(255, 144, 122, .25)');
+            playSfx('strain');
+            setStatus('重すぎる…！UFOが必死に引っ張ってる！');
+          }, 2450);
+          later(() => {
+            shutOffBeam();
+            ufo.classList.remove('straining');
+            ufo.classList.add('leaving');
+            setStatus('重すぎて持ち上がらない！UFOはあきらめた…');
+          }, 3900);
+          later(() => finishSafely('重すぎて持ち上がらず、無事に着地！'), 5200);
+        } else if (outcome === 'discarded') {
+          later(() => {
+            character.classList.remove('floating', 'page-flip');
+            character.classList.add('almost-abducting');
+            showAngerMark();
+            ufo.classList.remove('hovering');
+            ufo.classList.add('rejecting');
+            setStatus('あと少しで連れていかれそう…！');
+          }, 2550);
+          later(() => {
+            character.classList.remove('almost-abducting');
+            character.classList.add('discarded');
+            shutOffBeam();
+            ufo.classList.remove('rejecting');
+            ufo.classList.add('leaving');
+            playSfx('oops');
+            setStatus('つかまったと思ったら、ポイッと落とされた！');
+          }, 3550);
+          later(() => finishSafely('UFOに捨てられたけど、地上にセーフ着地！'), 5200);
+        } else if (outcome === 'broken') {
+          const exitDirection = Math.random() < .5 ? -1 : 1;
+          ufo.style.setProperty('--malfunction-x', (exitDirection * 125) + 'vw');
+          later(() => {
+            ufo.classList.remove('hovering');
+            ufo.classList.add('malfunction');
+            beam.classList.add('glitching');
+            playSfx('malfunction');
+            setStatus('あれ？UFOがガタガタ震えだした！');
+          }, 2550);
+          later(() => {
+            shutOffBeam();
+            character.classList.remove('floating', 'page-flip');
+            character.classList.add('bumpy-landing');
+            setStatus('UFOがフラフラ、画面の中央から遠ざかっていく！');
+          }, 3500);
+          later(() => finishSafely('故障したUFOは画面の外へ。推しは無事！'), 5750);
+        } else if (outcome === 'alien') {
+          later(() => {
+            character.classList.remove('floating', 'page-flip');
+            character.classList.add('watching-object');
+            sendAlienDown();
+            playSfx('alien');
+            setStatus('UFOからグレイ型の宇宙人が降りてきた！');
+          }, 2600);
+          later(() => {
+            shutOffBeam();
+            alien.className = 'alien alien-walking';
+            ufo.classList.remove('hovering');
+            ufo.classList.add('leaving');
+            setStatus('宇宙人がトコトコどこかへ歩いていく…');
+          }, 3900);
+          later(() => finishSafely('宇宙人はどこかへ…推しは無事に帰還！', true), 6500);
+        } else if (passBy) {
+          later(() => {
+            shutOffBeam();
+            character.classList.remove('floating', 'page-flip');
+            ufo.classList.remove('hovering');
+            ufo.classList.add('leaving');
+            setStatus('大きなUFOは光を消して上空へ…');
+          }, 2450);
+          later(() => {
+            flybyUfo.className = 'flyby-ufo passing';
+            playSfx('flyby');
+            setStatus('右から別のUFOが来て、一瞬停止…！');
+          }, 3800);
+          later(() => setStatus('そのまま横切っていった！'), 4350);
+          later(() => { flybyUfo.className = 'flyby-ufo'; }, 5550);
+          later(() => finishSafely('大きなUFOも通りすがりのUFOも去っていった…'), 5900);
+        } else {
+          later(() => {
+            character.classList.remove('floating', 'page-flip');
+            shutOffBeam();
+            ufo.classList.remove('hovering');
+            ufo.classList.add('leaving');
+            setStatus('UFOが帰っていく…今回はセーフ！');
+          }, 3900);
+          later(() => finishSafely('無事に着地！今回は連れていかれませんでした ✦'), 5200);
+        }
+      }
+
+      restoreDecoyCollection();
+      renderDecoyCollection();
+      updateSoundToggle();
+
+      imageInput.addEventListener('change', event => showImage(event.target.files && event.target.files[0]));
+      launchButton.addEventListener('click', startSequence);
+      soundToggle.addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        updateSoundToggle();
+        if (soundEnabled) {
+          getAudioContext();
+          playSfx('toggle');
+        }
+      });
+      returnButton.addEventListener('click', () => {
+        resetScene();
+        playSfx('return');
+        character.classList.add('returning');
+        setStatus('帰還しました！またUFOを呼べます。');
+        later(() => character.classList.remove('returning'), 700);
+      });
+
+      stage.addEventListener('dragover', event => {
+        event.preventDefault();
+        stage.classList.add('drag-over');
+      });
+      stage.addEventListener('dragleave', event => {
+        if (!stage.contains(event.relatedTarget)) stage.classList.remove('drag-over');
+      });
+      stage.addEventListener('drop', event => {
+        event.preventDefault();
+        stage.classList.remove('drag-over');
+        const file = event.dataTransfer && event.dataTransfer.files[0];
+        if (file) showImage(file);
+      });
+
+      document.querySelector('.upload-button').addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          imageInput.click();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
